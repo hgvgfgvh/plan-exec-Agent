@@ -2,7 +2,8 @@
 # 输出：release/AgentTest-<version>-win-x64/
 param(
     [string]$Version = "",
-    [switch]$Zip
+    [switch]$Zip,
+    [switch]$SkipMcpCopy
 )
 
 $ErrorActionPreference = "Stop"
@@ -78,11 +79,15 @@ foreach ($f in @("my_agent_memory.jsonl", "plan_agent_memory.jsonl")) {
 $ws = Join-Path $Stage "WorkSpace"
 New-Item -ItemType Directory -Path $ws -Force | Out-Null
 
-Write-Host "==> robocopy mcp_bundled (约 300MB，请稍候)" -ForegroundColor Yellow
-$McpSrc = Join-Path $Root "WorkSpace\mcp_bundled"
 $McpDst = Join-Path $ws "mcp_bundled"
-robocopy $McpSrc $McpDst /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
-if ($LASTEXITCODE -ge 8) { throw "robocopy mcp_bundled failed: $LASTEXITCODE" }
+if ($SkipMcpCopy -and (Test-Path $McpDst)) {
+    Write-Host "==> skip mcp_bundled (already present)" -ForegroundColor DarkGray
+} else {
+    Write-Host "==> robocopy mcp_bundled (~300MB)" -ForegroundColor Yellow
+    $McpSrc = Join-Path $Root "WorkSpace\mcp_bundled"
+    robocopy $McpSrc $McpDst /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy mcp_bundled failed: $LASTEXITCODE" }
+}
 
 $wsSub = @(
     "skill_packs",
@@ -110,9 +115,9 @@ if ($dbSrc -and (Test-Path -LiteralPath $dbSrc)) {
 }
 
 # experience.db
-$expDb = Join-Path $Root "experience\experience.db"
-if (Test-Path $expDb) {
-    Copy-Item $expDb (Join-Path $Stage "experience\experience.db") -Force
+$expDb = Join-Path (Join-Path $Root "experience") "experience.db"
+if ($expDb -and (Test-Path -LiteralPath $expDb)) {
+    Copy-Item -LiteralPath $expDb -Destination (Join-Path $Stage "experience\experience.db") -Force
 }
 
 # --- 文档与启动入口 ---
@@ -120,73 +125,31 @@ Copy-Item (Join-Path $Root "LICENSE") $Stage -Force -ErrorAction SilentlyContinu
 Copy-Item (Join-Path $Root "README.md") (Join-Path $Stage "README.md") -Force
 Copy-Item (Join-Path $Root "desktop-cat\README.md") (Join-Path $Stage "desktop-cat-README.md") -Force
 
-Set-Content -Path (Join-Path $Stage "VERSION.txt") -Value $Version -Encoding UTF8
+$Utf8Bom = New-Object System.Text.UTF8Encoding $true
+[System.IO.File]::WriteAllText((Join-Path $Stage "VERSION.txt"), $Version + "`r`n", $Utf8Bom)
 
-@'
-@echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-echo 正在启动 AgentTest 小猫...
-start "" "%~dp0AgentTestCat.exe"
-'@ | Set-Content -Path (Join-Path $Stage "启动 AgentTest 小猫.bat") -Encoding UTF8
-
-@'
-# AgentTest Windows 发布包 — 使用说明
-
-版本见 VERSION.txt
-
-## 系统要求
-
-- Windows 10/11 x64
-- 可访问互联网的 API（DeepSeek / 可选阿里云 DashScope）
-- [Microsoft Edge WebView2 运行时](https://developer.microsoft.com/microsoft-edge/webview2/)（多数 Win11 已自带）
-
-**无需**安装 Go、.NET SDK 或 Node.js。
-
-## 快速开始
-
-1. 解压本文件夹到任意路径（路径尽量不要含特殊字符）
-2. 双击 **启动 AgentTest 小猫.bat**（或 **AgentTestCat.exe**）
-3. 首次运行填写 **DeepSeek API Key**（必填）与可选 **DashScope Key**
-4. 保存后自动启动内核、打开浏览器 WebUI、显示桌宠
-
-## 目录说明
-
-| 路径 | 说明 |
-|------|------|
-| AgentTest.exe | Go 内核（小猫会自动拉起，一般无需单独双击） |
-| AgentTestCat.exe | 桌面小猫（推荐入口） |
-| config/app.example.yaml | 配置模板；首次配置后生成 config/app.yaml |
-| WorkSpace/mcp_bundled/ | 内置 MCP（filesystem / sqlite / 浏览器等） |
-| WorkSpace/ | 运行时产物、日志、上传附件（可删日志减负） |
-
-## 仅启动内核（高级）
-
-```powershell
-cd /d 本目录
-copy config\app.example.yaml config\app.yaml
-# 编辑 config\app.yaml 填入 API Key
-AgentTest.exe
-```
-
-浏览器访问 http://127.0.0.1:8765
-
-## 安全提示
-
-- 勿将 WebUI 暴露到公网
-- config/app.yaml 含密钥，勿分享
-- 工具可执行本机 PowerShell / 文件 / 邮件 / 浏览器操作，请在可信环境使用
-
-## 开源仓库
-
-https://github.com/hgvgfgvh/plan-exec-Agent
-'@ | Set-Content -Path (Join-Path $Stage "使用说明.txt") -Encoding UTF8
+# Launcher + readme: ASCII filenames only (see release-templates/)
+$TplDir = Join-Path $Root "release-templates"
+if (-not (Test-Path $TplDir)) { throw "Missing folder: $TplDir" }
+Copy-Item -LiteralPath (Join-Path $TplDir "Start-AgentTest-Cat.bat") -Destination (Join-Path $Stage "Start-AgentTest-Cat.bat") -Force
+Copy-Item -LiteralPath (Join-Path $TplDir "README-RELEASE.txt") -Destination (Join-Path $Stage "README-RELEASE.txt") -Force
+Get-ChildItem -LiteralPath $Stage -File | Where-Object { $_.Name -match '[^\x00-\x7F]' } | Remove-Item -Force -ErrorAction SilentlyContinue
 
 if ($Zip) {
     $ZipPath = Join-Path $Root "release\$OutName.zip"
     if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
-    Write-Host "==> Compress-Archive -> $ZipPath" -ForegroundColor Cyan
-    Compress-Archive -Path $Stage -DestinationPath $ZipPath -CompressionLevel Optimal
+    Write-Host "==> tar.exe zip (UTF-8 names) -> $ZipPath" -ForegroundColor Cyan
+    if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+        Push-Location (Split-Path $Stage -Parent)
+        try {
+            tar.exe -a -c -f $OutName.zip $OutName
+        } finally {
+            Pop-Location
+        }
+    } else {
+        Write-Host "tar.exe not found, fallback Compress-Archive" -ForegroundColor Yellow
+        Compress-Archive -Path $Stage -DestinationPath $ZipPath -CompressionLevel Optimal
+    }
 }
 
 $sizeMb = [math]::Round((Get-ChildItem $Stage -Recurse -File | Measure-Object Length -Sum).Sum / 1MB, 1)

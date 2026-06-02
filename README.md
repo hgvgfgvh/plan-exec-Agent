@@ -25,7 +25,7 @@
 
 在 [GitHub Releases](https://github.com/hgvgfgvh/plan-exec-Agent/releases) 下载 `AgentTest-*-win-x64.zip`（或本地构建见下），解压后：
 
-1. 双击 **启动 AgentTest 小猫.bat**
+1. 双击 **Start-AgentTest-Cat.bat**（解压包内英文文件名，避免乱码）
 2. 首次填写 API Key → 自动启动内核 + 浏览器 + 桌宠
 
 详见解压包内 **使用说明.txt**。
