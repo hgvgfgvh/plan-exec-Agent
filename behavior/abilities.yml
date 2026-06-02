@@ -1,0 +1,169 @@
+domains:
+  # --- 联网与情报领域 ---
+  - name: "WebApi_Domain"
+    description: "处理所有外部网络请求与实时情报搜集"
+    abilities:
+      - name: "SearchInf"
+        description: "智能联网信息搜集"
+        skills:
+          - name: "AI_Search_Skill_By_Qwen3-Max"
+            description: "通过连接高级 AI 搜索引擎获取经过提炼的实时信息，自带联网增强"
+            input_schema:
+              A_query: "string (Required, 搜索的关键词或问题)"
+              B_detail_level: "string (Optional, brief/detailed. 默认为 detailed)"
+            output_schema:
+              A_status: "string (success/fail)"
+              B_answer: "string (提炼后的搜索答案内容)"
+
+  # --- 自动化办公领域 ---
+#  - name: "Office_Domain"
+#    description: "结构化文档生产能力，直接生成标准办公文件"
+#    abilities:
+#  #      - name: "Document_Generation"
+#  #        description: "Word 与 PPT 文件的后台自动生成"
+#  #        skills:
+#  #          - name: "Generate_Word_Report"
+#  #            description: "利用系统原生接口生成真正的 .docx 文档（支持多行文本）"
+#  #            input_schema:
+#  #              A_content: "string (Required, 报告正文内容，支持Markdown格式)"
+#  #              B_file_name: "string (Required, 保存的文件名，如 report.docx)"
+#  #            output_schema:
+#  #              A_file_path: "string (生成文件的绝对路径)"
+#  #          - name: "Generate_PPT_Slides"
+#  #            description: "根据大纲逻辑生成多页 PPT 幻灯片"
+#  #            input_schema:
+#  #              A_title: "string (PPT总标题)"
+#  #              B_slides_json: "string (Required, 包含每页标题和要点的 JSON 数组)"
+#  #              C_file_name: "string (Required, 保存的文件名)"
+#  #            output_schema:
+#  #              A_file_path: "string (生成文件的绝对路径)"
+
+#  # --- 通讯与协作领域 ---
+#  - name: "Communication_Domain"
+#    description: "处理外部联络与数据发送"
+#    abilities:
+#  #      - name: "Email_Service"
+#  #        description: "自动化邮件外发服务"
+#  #        skills:
+#  #          - name: "Send_Email_With_Attachments"
+#  #            description: "通过 SMTP 发送带附件的邮件"
+#  #            input_schema:
+#  #              A_recipient: "string (收件人邮箱地址)"
+#  #              B_subject: "string (邮件主题)"
+#  #              C_body: "string (邮件正文内容)"
+#  #              D_attachments: "array (Required, 要发送的本地文件绝对路径列表 注意！绝对路径地址)"
+#  #            output_schema:
+#  #              A_status: "string (success/fail)"
+
+  # --- PC 行为执行领域 ---
+  - name: "Active_Domain"
+    description: "PC 端的物理与系统级行为控制"
+    abilities:
+      - name: "Mouse"
+        description: "鼠标精确控制与拖拽"
+        skills:
+          - name: "Click"
+            description: "点击屏幕指定坐标并指定是左键还是右键点击"
+            input_schema:
+              A_x: "int (x坐标)"
+              B_y: "int (y坐标)"
+              C_way: "string (left/right)"
+            output_schema:
+              A_status: "string (success/fail)"
+          - name: "DragAndDrop"
+            description: "模拟真人平滑拖拽动作（如滑块验证码、移动文件）"
+            input_schema:
+              A_start_x: "int (起点x)"
+              B_start_y: "int (起点y)"
+              C_end_x: "int (终点x)"
+              D_end_y: "int (终点y)"
+            output_schema:
+              A_status: "string (success/fail)"
+      - name: "Keyboard"
+        description: "模拟真实键盘输入"
+        skills:
+          - name: "TypeString"
+            description: "在当前光标处输入文本内容（支持中英文）"
+            input_schema:
+              A_text: "string (要输入的字符串)"
+            output_schema:
+              A_status: "string (success/fail)"
+          - name: "SuperKeyCombine"
+            description: "执行复杂的组合快捷键（如 ctrl+c, command+r）特别注意：win按键对应的是command"
+            input_schema:
+              A_keys: "array (按序排列的按键列表，如 ['control', 'c'])"
+            output_schema:
+              A_status: "string (success/fail)"
+      - name: "PowerShell"
+        description: "系统级命令执行与文件管理"
+        skills:
+          - name: "PowerShell"
+            description: '运行 Powershell 命令进行文件查找；工作目录由应用配置 paths.workspace 指定，用于应用启动或环境配置'
+            input_schema:
+              A_command: "string (具体的命令)"
+            output_schema:
+              A_result: "string (命令输出内容)"
+      - name: "Audio_Injection"
+        description: "音频注入与语音交互"
+        skills:
+          - name: "Text_To_Mic_Speech"
+            description: "将文字转为语音(TTS)并通过麦克风通道实时播放，支持 Context 中断"
+            input_schema:
+              A_text: "string (待播放的文字)"
+            output_schema:
+              A_status: "string (success/fail)"
+      - name: "UI_Inspector"
+        description: "窗口UI自动化元素探测（按钮、输入框、链接等可作为鼠标点击的参考）"
+        skills:
+          - name: "ScanActionableElements"
+            description: "深度扫描当前焦点窗口及任务栏中的可操作控件（按钮、输入框、链接等），返回其名称、类型及中心点坐标"
+            input_schema:
+              A_timeout_ms: "int (扫描超时限制，默认5000)"
+            output_schema:
+              A_elements: "array (控件列表，格式：名称|类型|X,Y)"
+              B_status: "string (success/fail)"
+  # --- 视觉感知领域 ---
+  - name: "See_Domain"
+    description: "PC 端的视觉识别与目标定位"
+    abilities:
+      - name: "Screen_Perception"
+        description: "查看并理解屏幕内容"
+        skills:
+          - name: "SeePCByEyesAndGetXY"
+            description: "视觉识别屏幕目标（如特定按钮或图标）并返回其中心坐标（不要轻易使用 耗时且不够准确）"
+            input_schema:
+              A_target_description: "string (描述要找的事物)"
+            output_schema:
+              A_x: "int (目标的x坐标)"
+              B_y: "int (目标的y坐标)"
+          - name: "SeeAndDenseCaption"
+            description: "深度分析：对当前屏幕状态进行全方位的视觉细节描述，用于理解复杂环境"
+            input_schema:
+              A_focus: "string (Optional, 是否有特定的关注点)"
+            output_schema:
+              A_description: "string (密集的视觉描述内容)"
+          - name: "SeeAndOCR"
+            description: "文字提取：识别屏幕上的所有文字、表格和表单，保持原有结构"
+            input_schema:
+              A_area: "string (Optional, 默认为 'all'，可以指定区域)"
+            output_schema:
+              A_text: "string (识别出的结构化文字内容)"
+      - name: "User_Uploads"
+        description: "分析用户上传到工作区的媒体文件"
+        skills:
+          - name: "AnalyzeWorkspaceImage"
+            description: "分析工作区内用户上传的图片（非屏幕截屏/非摄像头）；路径见【用户附件】"
+            input_schema:
+              A_image_path: "string (WorkSpace 内图片路径，如 WorkSpace/inbox/t-xxx/photo.png)"
+              A_focus: "string (Optional, 关注点或 OCR/描述提示)"
+            output_schema:
+              A_description: "string (视觉描述或文字提取结果)"
+      - name: "RealWorld_Perception"
+        description: "通过物理摄像头感知现实世界"
+        skills:
+          - name: "SeeCameraAndDescribe"
+            description: "实时观察摄像头画面，描述现实环境中的人物、物体或事件"
+            input_schema:
+              A_focus: "string (Optional, 关注点，如'帮我看看我身后有没有人')"
+            output_schema:
+              A_scene_description: "string (现实环境描述)"

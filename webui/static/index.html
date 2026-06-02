@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AgentTest</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="login-panel" class="login-shell">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="login-logo" aria-hidden="true">◇</span>
+      <h1>AgentTest</h1>
+    </div>
+    <p class="hint">登录后开始对话（初始账号见部署说明）</p>
+    <label class="field">
+      <span class="field-label">用户名</span>
+      <input id="user" type="text" autocomplete="username" value="admin" />
+    </label>
+    <label class="field">
+      <span class="field-label">密码</span>
+      <input id="pass" type="password" autocomplete="current-password" />
+    </label>
+    <button id="btn-login" class="btn-primary" type="button">登录</button>
+    <p id="login-err" class="err"></p>
+  </div>
+</div>
+
+<div id="app-panel" class="app-shell hidden">
+  <header class="top-bar">
+    <div class="top-bar-title">
+      <span class="top-bar-logo" aria-hidden="true">◇</span>
+      <span>AgentTest</span>
+    </div>
+    <div class="top-bar-actions">
+      <button id="btn-run-view" class="btn-ghost hidden" type="button" title="本回合运行视图">运行视图</button>
+      <button id="btn-logout" class="btn-ghost" type="button">退出</button>
+    </div>
+  </header>
+
+  <aside id="run-view-drawer" class="run-view-drawer hidden" aria-label="运行视图">
+    <div class="run-view-drawer-head">
+      <span>运行视图</span>
+      <button id="btn-run-view-close" class="btn-ghost" type="button" aria-label="关闭">×</button>
+    </div>
+    <iframe id="run-view-frame" class="run-view-frame" title="运行视图" sandbox="allow-same-origin"></iframe>
+  </aside>
+
+  <main id="messages" class="messages-scroll" role="log" aria-live="polite">
+    <div id="thread" class="thread">
+      <div id="welcome" class="welcome">
+        <h2>有什么可以帮你？</h2>
+        <p>输入任务后，编排与执行进度会显示在下方；最终答复以「反馈」为准。</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="composer">
+    <div class="composer-wrap">
+      <div id="attach-chips" class="attach-chips hidden" aria-label="待发送附件"></div>
+      <div class="composer-box">
+        <input
+                id="file-input"
+                type="file"
+                class="hidden"
+                multiple
+                aria-hidden="true"
+                tabindex="-1"
+        />
+        <input
+                id="folder-input"
+                type="file"
+                class="hidden"
+                webkitdirectory
+                directory
+                multiple
+                aria-hidden="true"
+                tabindex="-1"
+        />
+        <div class="attach-anchor">
+          <button
+                  id="btn-attach"
+                  class="btn-attach"
+                  type="button"
+                  aria-label="添加附件"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  title="添加附件"
+          >
+            <svg class="btn-attach-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div id="attach-menu" class="attach-menu hidden" role="menu" aria-label="添加附件">
+            <button type="button" class="attach-menu-item" data-attach="files" role="menuitem">
+                <span class="attach-menu-icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M14 2v6h6M12 18v-6M9 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </span>
+              <span class="attach-menu-text">
+                  <span class="attach-menu-label">上传文件</span>
+                  <span class="attach-menu-desc">图片、文档等</span>
+                </span>
+            </button>
+            <button type="button" class="attach-menu-item" data-attach="folder" role="menuitem">
+                <span class="attach-menu-icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 7a2 2 0 012-2h5l2 2h9a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              <span class="attach-menu-text">
+                  <span class="attach-menu-label">上传文件夹</span>
+                  <span class="attach-menu-desc">保留目录结构</span>
+                </span>
+            </button>
+          </div>
+        </div>
+        <textarea
+                id="msg"
+                rows="1"
+                placeholder="输入消息…"
+                aria-label="消息输入"
+        ></textarea>
+        <button id="btn-send" class="btn-send" type="button" aria-label="发送" title="发送 (Enter)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+      <p class="composer-hint">Enter 发送 · Shift+Enter 换行 · <span class="composer-hint-kbd">+</span> 添加附件（音频暂不支持）</p>
+    </div>
+  </footer>
+</div>
+<script src="/md-render.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

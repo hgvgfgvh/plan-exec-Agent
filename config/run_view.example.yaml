@@ -1,0 +1,13 @@
+# Run View（运行视图）— 独立 LLM 配置，与 agents.models / 核心编排模型解耦。
+# 每轮对话结束后根据 turnjournal 日志异步生成 HTML；建议使用便宜、快速的 Chat Completions 模型。
+
+run_view:
+  enabled: true
+  # OpenAI 兼容 API 根路径（可写 https://api.deepseek.com，程序会自动补 /chat/completions）
+  llm_api_base: "https://api.deepseek.com"
+  llm_api_key: "your-api-key"
+  llm_model: "deepseek-chat"
+  output_dir: "WorkSpace/run_views"
+  max_bundle_runes: 12000
+  debounce_ms: 600
+  llm_timeout_sec: 180
