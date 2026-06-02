@@ -31,3 +31,6 @@ config/app.yaml
 desktop-cat/**/bin/
 desktop-cat/**/obj/
 desktop-cat/**/*.user
+
+# 本地发布包（体积大，由 scripts/build-release.ps1 生成）
+release/

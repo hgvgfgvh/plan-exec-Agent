@@ -21,16 +21,29 @@
 | 构建 | [Go 1.25+](https://go.dev/dl/) + [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)（仅首次编译） |
 | 密钥 | [DeepSeek](https://platform.deepseek.com/) API Key（必填）；[阿里云 DashScope](https://dashscope.aliyun.com/) Key（选填，OCR / 视觉 / 联网搜索 / TTS） |
 
-### 三步开始
+### 方式 A：下载 Release（免编译，推荐）
+
+在 [GitHub Releases](https://github.com/hgvgfgvh/plan-exec-Agent/releases) 下载 `AgentTest-*-win-x64.zip`（或本地构建见下），解压后：
+
+1. 双击 **启动 AgentTest 小猫.bat**
+2. 首次填写 API Key → 自动启动内核 + 浏览器 + 桌宠
+
+详见解压包内 **使用说明.txt**。
+
+本地打 Release 包：
+
+```powershell
+.\scripts\build-release.ps1 -Zip
+# 产出：release\AgentTest-<日期>-win-x64\ 与同名 .zip（约 400MB，含 mcp_bundled）
+```
+
+### 方式 B：克隆源码自行编译
 
 ```powershell
 git clone https://github.com/hgvgfgvh/plan-exec-Agent.git
 cd plan-exec-Agent
 
-# 1. 复制配置模板（仓库不含你的真实 app.yaml）
 copy config\app.example.yaml config\app.yaml
-
-# 2. 一键编译并启动小猫（会 build AgentTest.exe + AgentTestCat）
 .\scripts\start-desktop-cat.ps1
 ```
 
