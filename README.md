@@ -4,7 +4,57 @@
 
 ![status](https://img.shields.io/badge/status-experimental-orange) ![language](https://img.shields.io/badge/Go-1.25-00ADD8) ![platform](https://img.shields.io/badge/platform-Windows-blue)
 
-> ⚠️ **实验性项目**：能跑通“单次复杂任务”的编排与工具执行，但默认 WebUI 密码是常量、工具可操作本机（PowerShell/文件/邮件/浏览器自动化），请不要在不可信环境直接运行。
+> ⚠️ **实验性项目**：工具可操控本机（PowerShell / 文件 / 邮件 / 浏览器自动化）。请勿将 WebUI 暴露到公网；**不要**把含真实 Key 的 `config/app.yaml` 提交到 Git。
+
+---
+
+## 🐱 小猫一键体验（推荐 · 产品化入口）
+
+**不想手改 YAML？** 用集成在仓库里的 **桌面小猫（WPF）**：首次配置 API Key → 自动启动内核 → 自动打开浏览器 WebUI → 桌宠对话。
+
+### 你需要
+
+| 项目 | 说明 |
+|------|------|
+| 系统 | Windows 10/11 |
+| 运行时 | [.NET 8 桌面运行时](https://dotnet.microsoft.com/download/dotnet/8.0)（运行小猫） |
+| 构建 | [Go 1.25+](https://go.dev/dl/) + [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)（仅首次编译） |
+| 密钥 | [DeepSeek](https://platform.deepseek.com/) API Key（必填）；[阿里云 DashScope](https://dashscope.aliyun.com/) Key（选填，OCR / 视觉 / 联网搜索 / TTS） |
+
+### 三步开始
+
+```powershell
+git clone https://github.com/hgvgfgvh/plan-exec-Agent.git
+cd plan-exec-Agent
+
+# 1. 复制配置模板（仓库不含你的真实 app.yaml）
+copy config\app.example.yaml config\app.yaml
+
+# 2. 一键编译并启动小猫（会 build AgentTest.exe + AgentTestCat）
+.\scripts\start-desktop-cat.ps1
+```
+
+**首次启动**会弹出配置向导：
+
+1. **DeepSeek API Key**（必填）— 主链对话、计划编排  
+2. **阿里云 DashScope Key**（选填）— 多模态扩展  
+3. **WebUI 密码**（选填）— 不填则使用 `app.example.yaml` 中的 `change-me`  
+
+保存后自动：写入本机 `config/app.yaml` → 启动 `AgentTest.exe` → 打开浏览器登录 WebUI → 显示桌宠。
+
+### 日常使用
+
+| 方式 | 操作 |
+|------|------|
+| 推荐 | 运行 `.\scripts\start-desktop-cat.ps1` |
+| 直接运行 | 在仓库根目录双击 / 运行 `desktop-cat\AgentTestCat\bin\Release\net8.0-windows\AgentTestCat.exe` |
+| 仅内核 | `go build -o AgentTest.exe .` 后 `.\AgentTest.exe`，浏览器访问 `http://127.0.0.1:8765` |
+
+托盘菜单：**显示小猫** · **打开 WebUI** · **API Key 配置** · **连接设置** · **退出**
+
+小猫偏好保存在 `%AppData%\AgentTestPCAPPCat\settings.json`（与 Git 无关）。
+
+更多细节见 [desktop-cat/README.md](desktop-cat/README.md)。
 
 ---
 
@@ -17,11 +67,11 @@
 - **外挂 Skill Pack**：扫描 `WorkSpace/skill_packs/*/SKILL.md`，可热更新目录（pack 内 `mcp.yaml` 仍需重启）
 - **WebUI**：HTTP + SSE，支持登录、聊天、上传附件（落盘 `WorkSpace/inbox/{turn_id}/`）、RunView 查看
 - **RunView（旁路）**：监听 `WorkSpace/logs/turns/*.json`，生成 `WorkSpace/run_views/*.html`
-- **桌面小猫（WPF）**：`desktop-cat/` 集成桌宠；首次启动配置 API Key → 自动拉起内核 → 桌宠对话（见 [desktop-cat/README.md](desktop-cat/README.md)）
+- **桌面小猫**：见上文 **🐱 小猫一键体验**
 
 ---
 
-## 🚀 快速开始
+## 🚀 开发者快速开始（手改配置）
 
 ### 环境要求
 
@@ -29,67 +79,46 @@
 - Go 1.25+
 - （可选）Python 3.x：仅在启用 `python-sandbox` MCP 时需要本机 `python` 可执行
 
-> 说明：示例配置默认走 `WorkSpace/mcp_bundled/` 的 bundled MCP。Node MCP 所需的 Node 运行时已随包放在 `WorkSpace/mcp_bundled/_runtime/`，一般不需要你另外装 Node。
+> bundled MCP 在 `WorkSpace/mcp_bundled/`（被 `.gitignore` 忽略，需自行准备或从发布包拷贝）。Node 类 MCP 可使用包内 `WorkSpace/mcp_bundled/_runtime/` 的 Node。
 
 ### 配置
 
-复制示例配置并填写你自己的 Key（**不要提交到 GitHub**）：
-
 ```powershell
-cp config/app.example.yaml config/app.yaml
+copy config\app.example.yaml config\app.yaml
 ```
 
-最少需要关注这些字段：
+最少填写：
 
 ```yaml
-agents:
-  default_model: "deepSeek-onnx"
-
 integrations:
-  dashscope:
-    api_key: "sk-..."        # 通义：联网搜索 / TTS / 视觉 / Embedding
   deepseek_legacy:
-    api_key: "sk-..."        # DeepSeek：主链对话 / 计划编排
+    api_key: "your-deepseek-api-key"
+  dashscope:
+    api_key: "your-dashscope-api-key"   # 可选
 
 web:
   enabled: true
   listen: ":8765"
+  username: "admin"
+  password: "change-me"
 ```
 
-> 完整字段说明（逐项注释）见 `config/app.yaml` 与 `config/app.example.yaml`。
+完整字段见 `config/app.example.yaml`。
 
-### 启动
+### 启动内核
 
 ```powershell
-go run .
-# 或
 go build -o AgentTest.exe .
 .\AgentTest.exe
 ```
 
-指定其它配置文件：
+指定配置：`$env:AGENTTEST_CONFIG="config/app.custom.yaml"`
 
-```powershell
-$env:AGENTTEST_CONFIG="config/app.custom.yaml"
-.\AgentTest.exe
-```
+### WebUI 登录
 
-### 桌面小猫（推荐体验）
-
-需安装 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)（仅构建小猫时）。
-
-```powershell
-.\scripts\start-desktop-cat.ps1
-```
-
-首次会弹出配置：**DeepSeek Key（必填）**、**阿里云 DashScope Key（选填，多模态）**，保存后自动启动 `AgentTest.exe` 并打开桌宠。
-
-### 使用 WebUI
-
-浏览器打开 `http://localhost:8765`：
-
-- **用户名**：`admin`
-- **默认密码**：`ZAQ!2wsx`（写死常量，见 `webui/server.go`）
+- 地址：`http://127.0.0.1:8765`
+- 用户：`admin`（可在 `web.username` 修改）
+- 密码：`config/app.yaml` 的 `web.password`（示例默认为 `change-me`；代码默认兜底见 `config/config.go`）
 
 ---
 
@@ -106,47 +135,38 @@ $env:AGENTTEST_CONFIG="config/app.custom.yaml"
 
 ### Agent 列表（当前实际注册）
 
-由 `agent/agentManager.go` 初始化：
-
-- `planAgent`（主入口，编排）
-- `behaviorAgent`（逐步执行）
-- `execSimpleAgent`（可选：存在才允许走 Exec-Simple）
-- `interactiveAgent`（对话脑区；目前主要用于 Router 旧链路/反思链实验，不是默认入口）
-- `routerAgent`（丘脑路由；已实现 dispatcher 快路径与 LLM 兜底，但当前 portal 主链默认不经过它）
-- `baseAgent`（通用对话/参考实现）
+由 `agent/agentManager.go` 初始化：`planAgent`、`behaviorAgent`、`execSimpleAgent`、`interactiveAgent`、`routerAgent`、`baseAgent`。
 
 ---
 
 ## 🔌 MCP 与能力目录
 
 - **公开工具名**：`{server}__{tool}`，例如 `sqlite__read_query`
-- **渐进披露**：执行类 Agent 的 system 里会注入第一层目录；要看 Schema/全文用 `get_capability_details`
-- **是否启用**：`config/app.yaml` 的 `capabilities.mcp.enabled`
+- **渐进披露**：第一层目录在 system 中；Schema 用 `get_capability_details`
+- **启用**：`config/app.yaml` → `capabilities.mcp.enabled`；**修改 MCP 列表后需重启内核**
 
 ---
 
 ## 🖥 RunView（回合运行视图）
 
-- **输入**：`WorkSpace/logs/turns/*.json`（由 `turnjournal` 写入）
+- **输入**：`WorkSpace/logs/turns/*.json`
 - **输出**：`WorkSpace/run_views/*.html`
-- **开关**：`config.app.yaml` 的 `run_view.enabled`
-
-示例独立配置见 `config/run_view.example.yaml`（RunView 的 LLM 配置与主链模型解耦）。
+- **开关**：`run_view.enabled`（LLM 配置与主链解耦，见 `config/run_view.example.yaml`）
 
 ---
 
-## 🛡 安全与开源发布建议（务必看）
+## 🛡 安全与开源（提交前自查）
 
-- **不要把 WebUI 暴露到公网**：默认密码是常量，没有重置流程
-- **不要提交敏感信息**：
-  - `config/app.yaml`（你的真实 key）
-  - `WorkSpace/`（日志、缓存、回合产物、附件）
-  - `.env*`、IDE 配置（`.idea/` 等）
-- 仓库默认 `.gitignore` 已忽略 `WorkSpace/*` 与 `.env*`；对外开源只提交 `config/app.example.yaml`
+| 可以提交 | 不要提交 |
+|----------|----------|
+| `config/app.example.yaml` | `config/app.yaml`（真实 Key / 密码） |
+| 源码、`desktop-cat/`、`scripts/` | `WorkSpace/*`（日志、产物、mcp 数据） |
+| | `.env*`、`.idea/`、`*.exe` |
+
+仓库 `.gitignore` 已忽略 `config/app.yaml` 与 `WorkSpace/*`。克隆后请 `copy config\app.example.yaml config\app.yaml` 或由小猫向导生成。
 
 ---
 
 ## 📄 License
 
-待定 / TBD（公开前建议补一个明确 License，例如 MIT / Apache-2.0）。
-
+MIT（见仓库根目录 `LICENSE`）。
