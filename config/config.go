@@ -173,6 +173,10 @@ type App struct {
 	Web struct {
 		Enabled bool   `yaml:"enabled"`
 		Listen  string `yaml:"listen"`
+		// Username WebUI 登录用户名（默认 admin）。
+		Username string `yaml:"username"`
+		// Password WebUI 登录密码（默认 ZAQ!2wsx；强烈建议在本机修改，且不要对公网暴露）。
+		Password string `yaml:"password"`
 	} `yaml:"web"`
 
 	// RunView 回合运行视图：旁路监听 turnjournal 日志，异步 LLM 生成 HTML（见 runview 包）。
@@ -479,6 +483,12 @@ func applyDefaults(a *App) {
 	}
 	if strings.TrimSpace(a.Web.Listen) == "" {
 		a.Web.Listen = ":8765"
+	}
+	if strings.TrimSpace(a.Web.Username) == "" {
+		a.Web.Username = "admin"
+	}
+	if strings.TrimSpace(a.Web.Password) == "" {
+		a.Web.Password = "ZAQ!2wsx"
 	}
 	if len(a.Capabilities.AttachTo) == 0 {
 		// routerAgent 故意不挂载 MCP / RegisterLangchainTools，仅做分流；执行与外部能力在 behavior / interactive 等层。

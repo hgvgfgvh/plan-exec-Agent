@@ -21,8 +21,6 @@ import (
 )
 
 const (
-	loginUser  = "admin"
-	loginPass  = "ZAQ!2wsx"
 	cookieName = "at_sess"
 )
 
@@ -31,6 +29,10 @@ var (
 	// token -> 过期时间
 	sessions = make(map[string]time.Time)
 	chatMu   sync.Mutex
+
+	authMu       sync.RWMutex
+	authUsername string
+	authPassword string
 )
 
 func sessionValid(r *http.Request) bool {
@@ -56,17 +58,31 @@ func newSessionToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func passOK(pw string) bool {
-	e := []byte(loginPass)
-	p := []byte(pw)
-	if len(p) != len(e) {
+func authOK(username, password string) bool {
+	authMu.RLock()
+	u := authUsername
+	p := authPassword
+	authMu.RUnlock()
+
+	uu := []byte(strings.TrimSpace(username))
+	pu := []byte(password)
+	ue := []byte(u)
+	pe := []byte(p)
+
+	if len(uu) != len(ue) || len(pu) != len(pe) {
 		return false
 	}
-	return subtle.ConstantTimeCompare(p, e) == 1
+	return subtle.ConstantTimeCompare(uu, ue) == 1 && subtle.ConstantTimeCompare(pu, pe) == 1
 }
 
 // Start 启动 Web UI（HTTP + SSE）；ctx 取消时关闭 http.Server。
 func Start(ctx context.Context, cfg *config.App) {
+	// 登录凭据（来自配置）；空值已由 config.applyDefaults 兜底。
+	authMu.Lock()
+	authUsername = strings.TrimSpace(cfg.Web.Username)
+	authPassword = cfg.Web.Password
+	authMu.Unlock()
+
 	addr := strings.TrimSpace(cfg.Web.Listen)
 	if addr == "" {
 		addr = ":8765"
@@ -104,9 +120,9 @@ func Start(ctx context.Context, cfg *config.App) {
 	go func() {
 		host := "127.0.0.1"
 		if strings.HasPrefix(addr, ":") {
-			fmt.Printf("\n[webui] 已启动 http://%s%s （登录 %s / 初始密码见配置说明）\n", host, addr, loginUser)
+			fmt.Printf("\n[webui] 已启动 http://%s%s （登录 %s / 密码见 config/app.yaml 的 web.password）\n", host, addr, authUsername)
 		} else {
-			fmt.Printf("\n[webui] 已启动 http://%s （登录 %s）\n", addr, loginUser)
+			fmt.Printf("\n[webui] 已启动 http://%s （登录 %s）\n", addr, authUsername)
 		}
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("webui ListenAndServe: %v", err)
@@ -151,7 +167,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad json", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(req.Username) != loginUser || !passOK(req.Password) {
+	if !authOK(req.Username, req.Password) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}

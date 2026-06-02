@@ -247,6 +247,10 @@ web:
   enabled: false
   # listen: 监听地址，如 ":8765" 或 "127.0.0.1:8765"。
   listen: ":8765"
+  # username: WebUI 登录用户名（默认 admin）。
+  username: "admin"
+  # password: WebUI 登录密码（强烈建议修改；不要暴露到公网）。
+  password: "change-me"
 
 # run_view: 旁路监听回合日志，异步 LLM 生成 HTML 推 WebUI 抽屉（不改 Plan/Behavior 主链）。
 run_view:
