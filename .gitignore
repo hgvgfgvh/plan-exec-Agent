@@ -20,3 +20,8 @@ WorkSpace/*
 *.out
 .idea/
 .vscode/
+
+# desktop-cat (.NET)
+desktop-cat/**/bin/
+desktop-cat/**/obj/
+desktop-cat/**/*.user

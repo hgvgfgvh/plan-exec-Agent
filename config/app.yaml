@@ -1,5 +1,6 @@
 # =============================================================================
 # AgentTest 应用配置（config/app.yaml）
+
 # =============================================================================
 # 加载方式：
 #   - 环境变量 AGENTTEST_CONFIG 指向本文件绝对/相对路径时优先使用；
@@ -7,12 +8,14 @@
 # 路径规则：
 #   - root 为相对路径解析基准（相对进程启动时工作目录）；
 #   - paths / MCP command / workdir 等可写相对 root 的路径，启动时解析为绝对路径。
+
 # =============================================================================
 
 # root: 工程根目录（相对当前工作目录）；"." 表示在运行目录下解析 paths 与各相对路径。
 root: "."
 
 # paths: 各类持久化资源与运行时工作区（均相对 root，Load 后解析为绝对路径）。
+
 paths:
   # abilities: 内置技能树定义（Domain/Ability/Skill），供 skill.GlobalManager 加载。
   abilities: "behavior/abilities.yml"
@@ -34,6 +37,7 @@ paths:
   mcp_bundled: "WorkSpace/mcp_bundled"
 
 # models: 注册到 ModelManager 的模型列表（key 供 agents.default_model 引用）。
+
 models:
   - # key: 模型注册名，agents.default_model 填此字符串。
     key: "qwen-onnx"
@@ -43,6 +47,7 @@ models:
     driver: "deepseek_onnx"
 
 # agents: 全局 Agent 默认模型与 RAG 行为。
+
 agents:
   # default_model: 默认推理模型，须与 models[].key 之一对应（主链对话、Plan 拆步等）。
   default_model: "deepSeek-onnx"
@@ -52,10 +57,11 @@ agents:
   behavior_zero_state: false
 
 # integrations: 原 Go 源码硬编码的 API Key/Endpoint 统一外置（主链 Qwen/DeepSeek、TTS、视觉、Embedding）。
+
 integrations:
   dashscope:
     # api_key: 阿里云 DashScope API Key（通义 Chat、联网搜索、TTS、视觉、Embedding）。
-    api_key: ""
+    api_key:
     # openai_compatible_base_url: openai-go SDK 基址（Embedding、视觉多模态）。
     openai_compatible_base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     # chat_completions_endpoint: 直连 HTTP Chat Completions（QwenModel、AI_Search 等）。
@@ -74,13 +80,14 @@ integrations:
     # chat_completions_endpoint: 主链 DeepSeek Chat Completions 完整 URL。
     chat_completions_endpoint: "https://api.deepseek.com/chat/completions"
     # api_key: DeepSeek API Key（driver=deepseek_onnx 主链；与 Memory/Soul MCP 的 flash key 独立）。
-    api_key: ""
+    api_key:
     # model: 主链模型 ID。
     model: "deepseek-v4-pro"
     # debug: 为 true 时在控制台打印完整请求/响应（开发调试用）。
     debug: true
 
 # executor: 各 Agent CustomExecutor 的步数、历史、归档与 Plan 编排参数。
+
 executor:
   # dialogue_archive_tokens: 对话 token 超过此值触发 DialogueHistoryArchiver 归档。
   dialogue_archive_tokens: 20000
@@ -169,6 +176,7 @@ executor:
     stream_synthesize_reply: true
 
 # plan_memory_hook: Plan 层 Memory MCP 插件（经验 retrieve 路由 Exec-Simple；回合结束 memory_store）。
+
 plan_memory_hook:
   # enabled: 是否挂载 Memory 插件（仍须 executor.exec_simple_enabled 才参与 simple 路由）。
   enabled: true
@@ -189,8 +197,7 @@ plan_memory_hook:
     # MEMORY_MCP_LLM_API_BASE: DeepSeek API 根 URL（勿重复 /chat/completions）。
     MEMORY_MCP_LLM_API_BASE: "https://api.deepseek.com"
     # MEMORY_MCP_LLM_API_KEY: Memory MCP 专用 LLM Key（可与主链不同，常用 flash 模型降本）。
-    MEMORY_MCP_LLM_API_KEY: ""
-    # MEMORY_MCP_LLM_MODEL: Memory MCP 使用的模型名。
+    MEMORY_MCP_LLM_API_KEY:
     MEMORY_MCP_LLM_MODEL: "deepseek-v4-flash"
     # MEMORY_MCP_ENTITY_MERGE_COSINE: 实体合并余弦阈值（Phase-2d 对齐）。
     MEMORY_MCP_ENTITY_MERGE_COSINE: "0.92"
@@ -216,6 +223,7 @@ plan_memory_hook:
     MEMORY_MCP_L2_TOPIC_JACCARD: "0.3"
 
 # plan_soul_hook: Plan 层 Soul MCP 插件（人格/议题 retrieve 与 store）。
+
 plan_soul_hook:
   # enabled: 是否启用 Soul 插件。
   enabled: true
@@ -241,11 +249,11 @@ plan_soul_hook:
     # SOUL_MCP_LLM_API_BASE: Soul MCP 使用的 API 根 URL。
     SOUL_MCP_LLM_API_BASE: "https://api.deepseek.com"
     # SOUL_MCP_LLM_API_KEY: Soul MCP 专用 API Key。
-    SOUL_MCP_LLM_API_KEY: ""
-    # SOUL_MCP_LLM_MODEL: Soul MCP 使用的模型名。
+    SOUL_MCP_LLM_API_KEY:
     SOUL_MCP_LLM_MODEL: "deepseek-v4-flash"
 
 # web: 内置 Web 控制台（浏览器交互入口；终端 stdin 已弃用）。
+
 web:
   # enabled: 是否启动 HTTP 服务。
   enabled: true
@@ -254,16 +262,17 @@ web:
   # username: WebUI 登录用户名（默认 admin）。
   username: "admin"
   # password: WebUI 登录密码（强烈建议修改；不要暴露到公网）。
-  password: "change-me"
+  password: ""
 
 # run_view: 旁路监听回合日志，异步 LLM 生成 HTML 推 WebUI 抽屉（不改 Plan/Behavior 主链）。
+
 run_view:
   # enabled: 是否启用运行视图生成。
   enabled: true
   # llm_api_base: 运行视图专用 LLM API 根路径（与 agents.default_model 无关）。
   llm_api_base: "https://api.deepseek.com"
   # llm_api_key: 运行视图专用 API Key。
-  llm_api_key: ""
+  llm_api_key:
   # llm_model: 运行视图使用的模型名。
   llm_model: "deepseek-v4-flash"
   # turn_log_dir: 回合日志目录；空则默认 WorkSpace/logs/turns。
@@ -278,6 +287,7 @@ run_view:
   llm_timeout_sec: 180
 
 # capabilities: MCP 服务与本机扩展工具挂载、安全与可观测性。
+
 capabilities:
   # attach_to: 挂载 MCP + RegisterLangchainTools 的 Agent 名列表；默认不含 routerAgent。
   attach_to:
@@ -409,12 +419,10 @@ capabilities:
           # MCP_MANAGER_LLM_API_BASE: 3M 内部 LLM API 根 URL。
           MCP_MANAGER_LLM_API_BASE: "https://api.deepseek.com"
           # MCP_MANAGER_LLM_API_KEY: 3M 内部 LLM API Key。
-          MCP_MANAGER_LLM_API_KEY: ""
-          # MCP_MANAGER_LLM_MODEL: 3M 内部 LLM 模型名。
+          MCP_MANAGER_LLM_API_KEY:
           MCP_MANAGER_LLM_MODEL: "deepseek-v4-flash"
           # MCP_MANAGER_AGENT: "1" 启用 Agent 模式编排。
           MCP_MANAGER_AGENT: "1"
-
   security:
     # audit_log_path: MCP/工具审计 JSONL 路径；空则不写审计文件。
     audit_log_path: ""

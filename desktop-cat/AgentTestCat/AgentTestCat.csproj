@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon></ApplicationIcon>
+    <AssemblyName>AgentTestCat</AssemblyName>
+    <RootNamespace>AgentTestCat</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="0.39.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\cat\*.png">
+      <Link>Assets\cat\%(Filename)%(Extension)</Link>
+    </Resource>
+    <Resource Include="Assets\cat_pixel.png">
+      <Link>Assets\cat_pixel.png</Link>
+    </Resource>
+  </ItemGroup>
+</Project>

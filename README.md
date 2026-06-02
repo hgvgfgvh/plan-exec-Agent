@@ -17,6 +17,7 @@
 - **外挂 Skill Pack**：扫描 `WorkSpace/skill_packs/*/SKILL.md`，可热更新目录（pack 内 `mcp.yaml` 仍需重启）
 - **WebUI**：HTTP + SSE，支持登录、聊天、上传附件（落盘 `WorkSpace/inbox/{turn_id}/`）、RunView 查看
 - **RunView（旁路）**：监听 `WorkSpace/logs/turns/*.json`，生成 `WorkSpace/run_views/*.html`
+- **桌面小猫（WPF）**：`desktop-cat/` 集成桌宠；首次启动配置 API Key → 自动拉起内核 → 桌宠对话（见 [desktop-cat/README.md](desktop-cat/README.md)）
 
 ---
 
@@ -72,6 +73,16 @@ go build -o AgentTest.exe .
 $env:AGENTTEST_CONFIG="config/app.custom.yaml"
 .\AgentTest.exe
 ```
+
+### 桌面小猫（推荐体验）
+
+需安装 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)（仅构建小猫时）。
+
+```powershell
+.\scripts\start-desktop-cat.ps1
+```
+
+首次会弹出配置：**DeepSeek Key（必填）**、**阿里云 DashScope Key（选填，多模态）**，保存后自动启动 `AgentTest.exe` 并打开桌宠。
 
 ### 使用 WebUI
 

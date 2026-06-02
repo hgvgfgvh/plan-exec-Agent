@@ -91,6 +91,7 @@ func Start(ctx context.Context, cfg *config.App) {
 
 	mux.HandleFunc("POST /api/login", handleLogin)
 	mux.HandleFunc("POST /api/logout", handleLogout)
+	registerHandoffRoutes(mux)
 	mux.HandleFunc("GET /api/events", handleEvents)
 	// 聊天编排可能长于单次 HTTP：回合 context 必须挂在应用生命周期上，不能用 r.Context()
 	//（请求结束会取消 r.Context()，导致黑板异步回调里 Submit 丢任务、前端收不到「反馈」）。
