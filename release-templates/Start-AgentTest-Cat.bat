@@ -5,4 +5,4 @@ set "AGENTTEST_ROOT=%~dp0"
 set "AGENTTEST_ROOT=%AGENTTEST_ROOT:~0,-1%"
 echo Starting AgentTest Cat...
 echo Install root: %AGENTTEST_ROOT%
-start "" "%~dp0AgentTestCat.exe"
+start "" "%~dp0AgentTestCat\AgentTestCat.exe"

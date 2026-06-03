@@ -243,8 +243,8 @@ plan_soul_hook:
 
 # web: 内置 Web 控制台（浏览器交互入口；终端 stdin 已弃用）。
 web:
-  # enabled: 是否启动 HTTP 服务。
-  enabled: false
+  # enabled: 是否启动 HTTP 服务（桌面小猫/WebUI 必须为 true）。
+  enabled: true
   # listen: 监听地址，如 ":8765" 或 "127.0.0.1:8765"。
   listen: ":8765"
   # username: WebUI 登录用户名（默认 admin）。
@@ -283,7 +283,7 @@ capabilities:
     - baseAgent
   mcp:
     # enabled: 是否在启动时连接下列 MCP servers。
-    enabled: false
+    enabled: true
     # servers: MCP 服务列表；每项字段见下方各 server 块注释。
     servers:
       # --- MCP Server 公共字段说明（每条 server 均适用）---

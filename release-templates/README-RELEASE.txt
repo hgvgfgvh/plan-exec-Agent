@@ -27,8 +27,8 @@
 
 目录说明
 --------
-AgentTest.exe          Go 内核（小猫会自动拉起）
-AgentTestCat.exe       桌面小猫（推荐入口）
+AgentTest.exe              Go 内核（小猫会自动拉起）
+AgentTestCat\AgentTestCat.exe   桌面小猫（推荐入口，勿单独拷出该 exe）
 config/app.example.yaml  配置模板；首次向导后生成 config/app.yaml（含密钥，勿分享）
 WorkSpace/mcp_bundled/   内置 MCP
 WorkSpace/               运行时日志、附件、MCP 数据与产物

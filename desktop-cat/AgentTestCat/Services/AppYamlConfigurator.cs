@@ -44,6 +44,24 @@ public static class AppYamlConfigurator
         return new WebAuth(user.Trim(), UnquoteYaml(pass.Trim()));
     }
 
+    /// <summary>桌面发布包：强制开启 WebUI 与 MCP（避免 example 中 enabled:false 导致小猫永久等待）。</summary>
+    public static void EnsureDesktopDefaults(string yamlPath)
+    {
+        if (!File.Exists(yamlPath)) return;
+        var text = ReadAllText(yamlPath);
+        text = Regex.Replace(
+            text,
+            @"(^web:\s*\r?\n(?:[ \t].*\r?\n)*?[ \t]*enabled:\s*)false\b",
+            "$1true",
+            RegexOptions.Multiline | RegexOptions.CultureInvariant);
+        text = Regex.Replace(
+            text,
+            @"(^capabilities:\s*\r?\n(?:[ \t].*\r?\n)*?[ \t]*mcp:\s*\r?\n(?:[ \t].*\r?\n)*?[ \t]*enabled:\s*)false\b",
+            "$1true",
+            RegexOptions.Multiline | RegexOptions.CultureInvariant);
+        WriteAllText(yamlPath, CollapseExcessiveBlankLines(text));
+    }
+
     /// <summary>整理 app.yaml 空行（不修改取值）。启动时可调用。</summary>
     public static void NormalizeFileFormat(string yamlPath)
     {

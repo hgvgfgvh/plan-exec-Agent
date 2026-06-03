@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using AgentTestCat.Services;
 using AgentTestCat.Views;
@@ -7,6 +8,9 @@ namespace AgentTestCat;
 
 public partial class App : System.Windows.Application
 {
+    private const string SingleInstanceMutexName = "Global\\AgentTestCat.SingleInstance.2026";
+    private static Mutex? _singleInstanceMutex;
+
     private AppSettings _settings = null!;
     private PetSession _session = null!;
     private CatSoundService? _sounds;
@@ -23,6 +27,19 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out var firstInstance);
+        if (!firstInstance)
+        {
+            System.Windows.MessageBox.Show(
+                "AgentTest 小猫已在运行。\n请从系统托盘打开，或在任务管理器中结束多余的 AgentTestCat.exe 后再试。",
+                "AgentTest 小猫",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         _ = StartupAsync();
     }
 
@@ -55,6 +72,7 @@ public partial class App : System.Windows.Application
             _projectRoot = root;
             AgentInstallPaths.EnsureConfigFromExample(root);
             _yamlPath = AgentInstallPaths.ConfigYamlPath(root);
+            AppYamlConfigurator.EnsureDesktopDefaults(_yamlPath);
 
             if (!AppYamlConfigurator.HasDeepSeekKey(_yamlPath))
             {
@@ -76,17 +94,8 @@ public partial class App : System.Windows.Application
             }
 
             SyncWebCredentialsFromYaml();
+            AppYamlConfigurator.EnsureDesktopDefaults(_yamlPath);
             AppYamlConfigurator.NormalizeFileFormat(_yamlPath);
-
-            _backend = new AgentBackendHost();
-            await _backend.EnsureRunningAsync(
-                _projectRoot,
-                _yamlPath,
-                _settings.BaseUrl,
-                CancellationToken.None).ConfigureAwait(true);
-
-            await WebUiBrowserLauncher.TryOpenLoggedInBrowserAsync(_settings, _yamlPath)
-                .ConfigureAwait(true);
 
             _session = new PetSession();
             _sounds = new CatSoundService(_settings, Dispatcher);
@@ -100,10 +109,22 @@ public partial class App : System.Windows.Application
                     _petWindow.Hide();
                 }
             };
+            _petWindow.UpdateConnectionStatus(false, "正在启动 AgentTest 内核（首次约 1–2 分钟）…");
             _petWindow.Show();
 
             SetupTray();
             _trayNotifier = new TrayNotifier(_settings, _tray!, _session, _sounds, () => _petWindow);
+
+            _backend = new AgentBackendHost();
+            await _backend.EnsureRunningAsync(
+                _projectRoot,
+                _yamlPath,
+                _settings.BaseUrl,
+                CancellationToken.None).ConfigureAwait(true);
+
+            _petWindow.UpdateConnectionStatus(false, "内核已就绪，正在打开 WebUI…");
+            await WebUiBrowserLauncher.TryOpenLoggedInBrowserAsync(_settings, _yamlPath)
+                .ConfigureAwait(true);
 
             await TryAutoConnectAsync().ConfigureAwait(true);
 
@@ -243,6 +264,9 @@ public partial class App : System.Windows.Application
         _backend?.Dispose();
         _backend = null;
 
+        _singleInstanceMutex?.ReleaseMutex();
+        _singleInstanceMutex?.Dispose();
+        _singleInstanceMutex = null;
         DebugLog.Close();
         Current.Shutdown();
     }
@@ -253,6 +277,9 @@ public partial class App : System.Windows.Application
         if (!_sessionShutdown)
             _session?.Shutdown();
         _backend?.Dispose();
+        _singleInstanceMutex?.ReleaseMutex();
+        _singleInstanceMutex?.Dispose();
+        _singleInstanceMutex = null;
         DebugLog.Close();
         base.OnExit(e);
     }

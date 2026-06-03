@@ -30,16 +30,14 @@ go build -ldflags="-s -w" -o (Join-Path $Stage "AgentTest.exe") .
 # --- 发布小猫（自包含单文件，需本机已装 WebView2 运行时）---
 Write-Host "==> dotnet publish AgentTestCat (win-x64 self-contained)" -ForegroundColor Cyan
 $CatProj = Join-Path $Root "desktop-cat\AgentTestCat\AgentTestCat.csproj"
+# 非单文件发布：避免多次启动时单文件解压锁死；运行时放在 AgentTestCat\ 子目录
+$CatOut = Join-Path $Stage "AgentTestCat"
 dotnet publish $CatProj -c Release -r win-x64 --self-contained true `
-    -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:EnableCompressionInSingleFile=true `
-    -o (Join-Path $Stage "_publish_cat")
+    -p:PublishSingleFile=false `
+    -o $CatOut
 
-$PublishedCat = Join-Path $Stage "_publish_cat\AgentTestCat.exe"
+$PublishedCat = Join-Path $CatOut "AgentTestCat.exe"
 if (-not (Test-Path $PublishedCat)) { throw "publish failed: $PublishedCat" }
-Move-Item $PublishedCat (Join-Path $Stage "AgentTestCat.exe") -Force
-Remove-Item (Join-Path $Stage "_publish_cat") -Recurse -Force
 
 # --- 配置与静态资源 ---
 $Dirs = @(
