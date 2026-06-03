@@ -85,13 +85,16 @@ public sealed class SseBubbleAggregator
         }
 
         var priority = SourcePriority(state.Source);
-        if (priority <= 0 || string.IsNullOrWhiteSpace(state.Text))
+        if (priority <= 0)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(state.Text) && !isFinal)
             return false;
 
         _turnBestPriority = Math.Max(_turnBestPriority, priority);
         source = state.Source;
         text = state.Text.TrimEnd();
-        return true;
+        return !string.IsNullOrWhiteSpace(text) || isFinal;
     }
 
     private bool HandlePlainEntry(

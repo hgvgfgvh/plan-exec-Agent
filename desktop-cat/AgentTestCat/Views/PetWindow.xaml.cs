@@ -15,14 +15,15 @@ public partial class PetWindow : Window
 {
     private const int InitialInputChars = 8;
     private const int MaxCharsPerLine = 35;
-    private const int MaxInputLines = 8;
+    private const double InputVerticalPad = 10;
     private const double CollapsedBaseHeight = 418;
     private const double CollapsedWindowWidth = 280;
     private const double MinExpandedWidth = 320;
     private const double MinExpandedHeight = 240;
     private const double MaxExpandedWidth = 960;
     private const double MaxExpandedHeight = 820;
-    private const double InputLineHeight = 18;
+    private const double InputSingleLineHeight = 28;
+    private const double InputLineStep = 18;
     private const double InputPaddingH = 14;
     private const double ExpandedBottomReserve = 248;
 
@@ -43,10 +44,11 @@ public partial class PetWindow : Window
     private CatAnimator _catAnimator = null!;
 
     private bool _bubbleExpanded;
-    private bool _inputUpdating;
     private bool _webViewReady;
     private double _inputMinWidth;
     private double _inputMaxWidth;
+    private DispatcherTimer? _expandedRenderDebounce;
+    private int _expandedRenderPass;
 
     private System.Windows.Point _catPressScreen;
     private bool _catDragStarted;
@@ -67,8 +69,8 @@ public partial class PetWindow : Window
 
         _inputMinWidth = MeasureTextWidth(new string('中', InitialInputChars)) + InputPaddingH;
         _inputMaxWidth = MeasureTextWidth(new string('中', MaxCharsPerLine)) + InputPaddingH;
-        MessageBox.Width = _inputMinWidth;
         MessageBox.MinWidth = _inputMinWidth;
+        MessageBox.MaxWidth = _inputMaxWidth;
 
         _session.HistoryUpdated += () => Dispatcher.Invoke(RefreshHistoryUi);
         _session.StatusChanged += msg =>
@@ -117,7 +119,11 @@ public partial class PetWindow : Window
             : "未连接 · 点击齿轮设置";
     }
 
-    public void PrepareForShutdown() => _animTimer.Stop();
+    public void PrepareForShutdown()
+    {
+        _animTimer.Stop();
+        _expandedRenderDebounce?.Stop();
+    }
 
     private void RefreshHistoryUi()
     {
@@ -223,10 +229,33 @@ public partial class PetWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             HistoryScroll.ScrollToEnd();
+            if (!_bubbleExpanded)
+                AdjustInputLayout();
         }, DispatcherPriority.Loaded);
 
         if (_bubbleExpanded)
-            _ = RenderExpandedHistoryAsync();
+            ScheduleExpandedHistoryRender();
+    }
+
+    private void ScheduleExpandedHistoryRender()
+    {
+        if (!_bubbleExpanded) return;
+        Interlocked.Increment(ref _expandedRenderPass);
+        _expandedRenderDebounce ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+        _expandedRenderDebounce.Stop();
+        _expandedRenderDebounce.Tick -= ExpandedRenderDebounce_Tick;
+        _expandedRenderDebounce.Tick += ExpandedRenderDebounce_Tick;
+        _expandedRenderDebounce.Start();
+    }
+
+    private void ExpandedRenderDebounce_Tick(object? sender, EventArgs e)
+    {
+        if (sender is DispatcherTimer timer)
+        {
+            timer.Stop();
+            timer.Tick -= ExpandedRenderDebounce_Tick;
+        }
+        _ = RenderExpandedHistoryAsync();
     }
 
     private void UpdateMood(PetMood mood) => _catAnimator.SetMood(mood);
@@ -298,12 +327,12 @@ public partial class PetWindow : Window
     private void SyncExpandedWindowSize()
     {
         if (!_bubbleExpanded) return;
-        var lines = Math.Clamp(CountInputLines(MessageBox.Text), 1, MaxInputLines);
-        var inputExtra = (lines - 1) * InputLineHeight;
+        var inputExtra = Math.Max(0, MeasureInputBoxHeight(MessageBox.Text) - InputSingleLineHeight);
+        var attachExtra = MeasureAttachChipsHeight();
         var neededW = BubbleExpanded.Margin.Left + BubbleExpanded.Width + 16;
-        var neededH = BubbleExpanded.Margin.Top + BubbleExpanded.Height + ExpandedBottomReserve + inputExtra;
+        var neededH = BubbleExpanded.Margin.Top + BubbleExpanded.Height + ExpandedBottomReserve + inputExtra + attachExtra;
         Width = Math.Max(CollapsedWindowWidth, neededW);
-        Height = Math.Max(CollapsedBaseHeight + inputExtra, neededH);
+        Height = Math.Max(CollapsedBaseHeight + inputExtra + attachExtra, neededH);
     }
 
     private static double Clamp(double v, double min, double max) => Math.Max(min, Math.Min(max, v));
@@ -405,9 +434,35 @@ public partial class PetWindow : Window
 
     private async Task RenderExpandedHistoryAsync()
     {
-        await EnsureWebViewAsync();
-        var html = MarkdownHtmlRenderer.ToConversationHtml(_session.History.Messages);
-        MarkdownWebView.NavigateToString(html);
+        if (!_bubbleExpanded) return;
+
+        var pass = Volatile.Read(ref _expandedRenderPass);
+        try
+        {
+            await EnsureWebViewAsync();
+            BubbleExpanded.UpdateLayout();
+            MarkdownWebView.UpdateLayout();
+
+            var html = MarkdownHtmlRenderer.ToConversationHtml(_session.History.Messages);
+            MarkdownWebView.NavigateToString(html);
+
+            await Task.Delay(60);
+            if (!_bubbleExpanded || !_webViewReady) return;
+
+            try
+            {
+                await MarkdownWebView.CoreWebView2.ExecuteScriptAsync(
+                    "window.scrollTo(0, document.body.scrollHeight);");
+            }
+            catch { /* ignore */ }
+
+            if (Volatile.Read(ref _expandedRenderPass) != pass)
+                await RenderExpandedHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Warn("webview", "render history: " + ex.Message);
+        }
     }
 
     private void AttachButton_Click(object sender, RoutedEventArgs e)
@@ -540,44 +595,12 @@ public partial class PetWindow : Window
         return paths.Length > 0;
     }
 
-    private void MessageBox_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_inputUpdating) return;
-
-        var wrapped = MarkdownHelper.EnforceMaxCharsPerLine(MessageBox.Text, MaxCharsPerLine);
-        if (!string.Equals(wrapped, MessageBox.Text, StringComparison.Ordinal))
-        {
-            _inputUpdating = true;
-            var caret = MessageBox.CaretIndex;
-            var delta = wrapped.Length - MessageBox.Text.Length;
-            MessageBox.Text = wrapped;
-            MessageBox.CaretIndex = Math.Clamp(caret + Math.Max(0, delta), 0, wrapped.Length);
-            _inputUpdating = false;
-        }
-
-        if (CountInputLines(MessageBox.Text) > MaxInputLines)
-        {
-            _inputUpdating = true;
-            var lines = MessageBox.Text.Replace("\r\n", "\n").Split('\n');
-            MessageBox.Text = string.Join("\n", lines.Take(MaxInputLines));
-            MessageBox.CaretIndex = MessageBox.Text.Length;
-            _inputUpdating = false;
-        }
-
-        AdjustInputLayout();
-    }
+    private void MessageBox_TextChanged(object sender, TextChangedEventArgs e) => AdjustInputLayout();
 
     private void AdjustInputLayout()
     {
-        var text = MessageBox.Text ?? "";
-        var lines = string.IsNullOrEmpty(text) ? new[] { "" } : text.Replace("\r\n", "\n").Split('\n');
-        var longestLine = lines.OrderByDescending(static l => l.Length).FirstOrDefault() ?? "";
-        var sample = longestLine.Length > 0 ? longestLine : new string('中', InitialInputChars);
-        var inputWidth = Math.Clamp(MeasureTextWidth(sample) + InputPaddingH, _inputMinWidth, _inputMaxWidth);
-
-        MessageBox.Width = inputWidth;
-        var lineCount = Math.Clamp(lines.Length, 1, MaxInputLines);
-        MessageBox.Height = 28 + (lineCount - 1) * InputLineHeight;
+        MessageBox.MaxWidth = _inputMaxWidth;
+        MessageBox.Height = MeasureInputBoxHeight(MessageBox.Text);
 
         if (!_bubbleExpanded)
             AdjustWindowSize();
@@ -585,8 +608,59 @@ public partial class PetWindow : Window
 
     private void AdjustWindowSize()
     {
-        var lines = Math.Clamp(CountInputLines(MessageBox.Text), 1, MaxInputLines);
-        Height = CollapsedBaseHeight + (lines - 1) * InputLineHeight;
+        if (_bubbleExpanded) return;
+        var inputExtra = Math.Max(0, MeasureInputBoxHeight(MessageBox.Text) - InputSingleLineHeight);
+        var attachExtra = MeasureAttachChipsHeight();
+        var target = CollapsedBaseHeight + inputExtra + attachExtra;
+        var maxWindowH = SystemParameters.WorkArea.Height * 0.92;
+        Height = Math.Min(target, maxWindowH);
+    }
+
+    private double GetInputTextAreaWidth()
+    {
+        var boxWidth = MessageBox.ActualWidth > 0 ? MessageBox.ActualWidth : _inputMaxWidth;
+        return Math.Max(48, boxWidth - 12);
+    }
+
+    private double MeasureInputBoxHeight(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return InputSingleLineHeight;
+
+        var maxWidth = GetInputTextAreaWidth();
+        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var typeface = new Typeface(
+            MessageBox.FontFamily,
+            FontStyles.Normal,
+            FontWeights.Normal,
+            FontStretches.Normal);
+        var ft = new FormattedText(
+            text.Replace("\r\n", "\n"),
+            CultureInfo.CurrentUICulture,
+            System.Windows.FlowDirection.LeftToRight,
+            typeface,
+            MessageBox.FontSize,
+            System.Windows.Media.Brushes.White,
+            dpi)
+        {
+            MaxTextWidth = maxWidth
+        };
+
+        return Math.Max(InputSingleLineHeight, ft.Height + InputVerticalPad);
+    }
+
+    private double MeasureAttachChipsHeight()
+    {
+        if (AttachChips.Visibility != Visibility.Visible)
+            return 0;
+
+        var width = RootGrid.ActualWidth > 0 ? RootGrid.ActualWidth : CollapsedWindowWidth - 20;
+        AttachChips.UpdateLayout();
+        AttachChips.Measure(new System.Windows.Size(width, double.PositiveInfinity));
+        var h = Math.Max(AttachChips.DesiredSize.Height, AttachChips.ActualHeight);
+        if (h <= 0 && AttachChips.Items.Count > 0)
+            h = 28;
+        return h > 0 ? h + AttachChips.Margin.Bottom : 0;
     }
 
     private double MeasureTextWidth(string text)
@@ -602,12 +676,6 @@ public partial class PetWindow : Window
             System.Windows.Media.Brushes.White,
             dpi);
         return ft.WidthIncludingTrailingWhitespace;
-    }
-
-    private static int CountInputLines(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return 1;
-        return text.Replace("\r\n", "\n").Split('\n').Length;
     }
 
     private void MessageBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)

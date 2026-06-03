@@ -30,11 +30,12 @@
 
 详见解压包内 **使用说明.txt**。
 
-本地打 Release 包：
+本地打 **解压即用** 发布包（配置与 `WorkSpace` 均在包内，不依赖源码目录）：
 
 ```powershell
 .\scripts\build-release.ps1 -Zip
-# 产出：release\AgentTest-<日期>-win-x64\ 与同名 .zip（约 400MB，含 mcp_bundled）
+# 产出：release\AgentTest-<日期>-win-x64\ 与同名 .zip（约 190–400MB，含 mcp_bundled）
+# 用户解压后双击 Start-AgentTest-Cat.bat，首次向导写入 config\app.yaml
 ```
 
 ### 方式 B：克隆源码自行编译

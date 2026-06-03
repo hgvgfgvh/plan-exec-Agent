@@ -35,7 +35,6 @@ public sealed class ChatHistory
     {
         source = (source ?? "").Trim();
         text = text ?? "";
-        if (string.IsNullOrWhiteSpace(text)) return;
 
         ChatMessage? msg = null;
         if (!string.IsNullOrWhiteSpace(streamKey) && _streamKeys.TryGetValue(streamKey, out var id))
@@ -43,6 +42,8 @@ public sealed class ChatHistory
 
         if (msg == null)
         {
+            if (string.IsNullOrWhiteSpace(text) && isFinal)
+                return;
             msg = new ChatMessage { Source = source, Text = text, IsUser = false, IsStreaming = !isFinal };
             _messages.Add(msg);
             if (!string.IsNullOrWhiteSpace(streamKey))
@@ -51,7 +52,8 @@ public sealed class ChatHistory
         else
         {
             msg.Source = source;
-            msg.Text = text;
+            if (!string.IsNullOrWhiteSpace(text))
+                msg.Text = text;
             msg.IsStreaming = !isFinal;
         }
 

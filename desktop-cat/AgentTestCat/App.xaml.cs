@@ -37,12 +37,14 @@ public partial class App : System.Windows.Application
 
         try
         {
-            var root = AgentInstallPaths.FindProjectRoot();
+            var root = AgentInstallPaths.FindInstallRoot();
             if (root == null)
             {
                 System.Windows.MessageBox.Show(
-                    "未找到 AgentTest 工程根目录（需要存在 config/app.yaml）。\n\n" +
-                    "请从 AgentTest 仓库根目录启动小猫，或设置环境变量 AGENTTEST_ROOT。",
+                    "未找到 AgentTest 安装目录。\n\n" +
+                    "请在本文件夹内双击 Start-AgentTest-Cat.bat 或 AgentTestCat.exe 启动，" +
+                    "勿单独复制小猫程序到其它位置。\n" +
+                    "也可设置环境变量 AGENTTEST_ROOT 指向解压后的根目录。",
                     "AgentTest 小猫",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -51,6 +53,7 @@ public partial class App : System.Windows.Application
             }
 
             _projectRoot = root;
+            AgentInstallPaths.EnsureConfigFromExample(root);
             _yamlPath = AgentInstallPaths.ConfigYamlPath(root);
 
             if (!AppYamlConfigurator.HasDeepSeekKey(_yamlPath))

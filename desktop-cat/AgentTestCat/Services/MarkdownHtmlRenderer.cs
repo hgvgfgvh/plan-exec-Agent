@@ -128,10 +128,17 @@ body { padding: 4px 2px 12px 4px; overflow-y: auto; }
             if (m.IsStreaming) sb.Append(" · 生成中…");
             sb.Append("</span>");
 
-            if (!m.IsUser && MarkdownHelper.ShouldUseMarkdown(m.Source, m.Text))
-                sb.Append(Markdown.ToHtml(MarkdownHelper.BuildMarkdownForRender(m.Source, m.Text), Pipeline));
-            else
+            try
+            {
+                if (!m.IsUser && MarkdownHelper.ShouldUseMarkdown(m.Source, m.Text))
+                    sb.Append(Markdown.ToHtml(MarkdownHelper.BuildMarkdownForRender(m.Source, m.Text), Pipeline));
+                else
+                    sb.Append("<p>").Append(WebUtility.HtmlEncode(m.Text).Replace("\n", "<br/>")).Append("</p>");
+            }
+            catch
+            {
                 sb.Append("<p>").Append(WebUtility.HtmlEncode(m.Text).Replace("\n", "<br/>")).Append("</p>");
+            }
 
             sb.Append("</div>");
         }

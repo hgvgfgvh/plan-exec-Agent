@@ -21,7 +21,19 @@ public static class AppYamlConfigurator
     {
         if (!File.Exists(yamlPath)) return false;
         var key = ReadScalarInSection(ReadAllText(yamlPath), "deepseek_legacy", "api_key");
-        return !string.IsNullOrWhiteSpace(key);
+        if (string.IsNullOrWhiteSpace(key)) return false;
+        return !IsPlaceholderKey(key);
+    }
+
+    private static bool IsPlaceholderKey(string key)
+    {
+        var k = key.Trim();
+        if (k.Length == 0) return true;
+        if (k.StartsWith("your-", StringComparison.OrdinalIgnoreCase)) return true;
+        if (k.Contains("your-", StringComparison.OrdinalIgnoreCase)
+            && k.Contains("api-key", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 
     public static WebAuth ReadWebAuth(string yamlPath)

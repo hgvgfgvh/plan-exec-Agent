@@ -1,5 +1,0 @@
-{"query":"点击屏幕上的 hello 按钮完成验证","skill_tree":"SeePCByEyesAndGetXY:1,Click:0","t":1769338764}
-{"query":"点击屏幕中的hello按钮完成人机验证","skill_tree":"SeePCByEyesAndGetXY:1,Click:0","t":1769343528}
-{"query":"点击屏幕中的hello按钮完成验证","skill_tree":"SeePCByEyesAndGetXY:1,Click:0","t":1769349618}
-{"query":"点击屏幕hell按钮完成验证","skill_tree":"SeePCByEyesAndGetXY:1,Click:0","t":1769777951}
-{"query":"在屏幕上视觉识别并点击描述为'hello 按钮'的目标","skill_tree":"SeePCByEyesAndGetXY:1,Click:0","t":1769778059}

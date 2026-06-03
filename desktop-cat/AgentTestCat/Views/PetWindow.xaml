@@ -183,25 +183,29 @@
                     </Border>
                 </Grid>
 
-                <!-- 附件 chips -->
-                <ItemsControl x:Name="AttachChips"
-                              Grid.Row="3"
-                              Margin="0,0,0,4"
-                              Visibility="Collapsed">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
+                <!-- 输入区（附件在输入框上方） -->
+                <Grid x:Name="InputArea" Grid.Row="3" Margin="0,0,0,2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <!-- 输入区 -->
-                <Grid x:Name="InputArea" Grid.Row="4">
-                    <Grid x:Name="InputRow">
+                    <ItemsControl x:Name="AttachChips"
+                                  Grid.Row="0"
+                                  Margin="0,0,0,4"
+                                  Visibility="Collapsed">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+
+                    <Grid x:Name="InputRow" Grid.Row="1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" MinWidth="120" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Button x:Name="AttachButton"
@@ -219,16 +223,15 @@
                                  AllowDrop="True"
                                  PreviewDragOver="FileDrop_PreviewDragOver"
                                  PreviewDrop="FileDrop_PreviewDrop"
-                                 ToolTip="输入消息，或拖入文件/文件夹上传"
-                                 Width="120"
+                                 ToolTip="输入消息，或拖入文件/文件夹上传（Shift+Enter 换行）"
                                  MinWidth="120"
-                                 MinHeight="28"
                                  Height="28"
-                                 MaxHeight="170"
                                  AcceptsReturn="True"
-                                 TextWrapping="NoWrap"
-                                 VerticalScrollBarVisibility="Auto"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Disabled"
+                                 HorizontalScrollBarVisibility="Disabled"
                                  VerticalContentAlignment="Top"
+                                 HorizontalAlignment="Stretch"
                                  FontSize="12"
                                  FontFamily="Segoe UI"
                                  Background="#E8302E3A"
@@ -248,6 +251,9 @@
                                 Cursor="Hand" />
                     </Grid>
                 </Grid>
+
+                <!-- 底部留白（避免贴边裁切） -->
+                <Border Grid.Row="4" Height="4" Background="Transparent" />
             </Grid>
         </Border>
 

@@ -8,6 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$Utf8Bom = New-Object System.Text.UTF8Encoding $true
 Set-Location $Root
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
@@ -42,7 +43,6 @@ Remove-Item (Join-Path $Stage "_publish_cat") -Recurse -Force
 
 # --- 配置与静态资源 ---
 $Dirs = @(
-    "config",
     "behavior",
     "agent\soul",
     "memory",
@@ -63,9 +63,29 @@ if (Test-Path $SoulDir) {
     Get-ChildItem $SoulDir -File | Where-Object { $_.Name -ne "Nexus.yml" } | Remove-Item -Force
 }
 
-# 配置：仅示例 + 首次运行由小猫生成 app.yaml
-Copy-Item (Join-Path $Root "config\app.example.yaml") (Join-Path $Stage "config\app.example.yaml") -Force
-if (Test-Path (Join-Path $Stage "config\app.yaml")) { Remove-Item (Join-Path $Stage "config\app.yaml") -Force }
+# 配置目录：仅 YAML 模板（不含 app.yaml 与 Go 源码）；首次运行由小猫生成 app.yaml
+$CfgStage = Join-Path $Stage "config"
+New-Item -ItemType Directory -Path $CfgStage -Force | Out-Null
+foreach ($cfgName in @("app.example.yaml", "run_view.example.yaml")) {
+    $cfgSrc = Join-Path $Root "config\$cfgName"
+    if (Test-Path $cfgSrc) {
+        Copy-Item $cfgSrc (Join-Path $CfgStage $cfgName) -Force
+    }
+}
+$CfgReadme = @"
+AgentTest 配置目录
+==================
+- app.example.yaml   配置模板（含字段说明）
+- app.yaml           首次运行小猫向导后自动生成（含 API Key，请勿分享）
+
+若尚未生成 app.yaml：
+  双击 Start-AgentTest-Cat.bat，按向导填写 DeepSeek API Key 并保存。
+
+高级用户也可手动：
+  copy app.example.yaml app.yaml
+  再用记事本编辑 app.yaml 填入密钥。
+"@
+[System.IO.File]::WriteAllText((Join-Path $CfgStage "README.txt"), $CfgReadme, $Utf8Bom)
 
 # 空 memory / experience 占位
 $memDir = Join-Path $Stage "memory"
@@ -125,8 +145,16 @@ Copy-Item (Join-Path $Root "LICENSE") $Stage -Force -ErrorAction SilentlyContinu
 Copy-Item (Join-Path $Root "README.md") (Join-Path $Stage "README.md") -Force
 Copy-Item (Join-Path $Root "desktop-cat\README.md") (Join-Path $Stage "desktop-cat-README.md") -Force
 
-$Utf8Bom = New-Object System.Text.UTF8Encoding $true
 [System.IO.File]::WriteAllText((Join-Path $Stage "VERSION.txt"), $Version + "`r`n", $Utf8Bom)
+$PortableNote = @"
+AgentTest portable install
+==========================
+This folder is self-contained. Keep all files together.
+Config: config\app.yaml (created on first run from app.example.yaml)
+Runtime data: WorkSpace\, memory\, experience\
+Do not depend on the source repository path.
+"@
+[System.IO.File]::WriteAllText((Join-Path $Stage "PORTABLE.txt"), $PortableNote, $Utf8Bom)
 
 # Launcher + readme: ASCII filenames only (see release-templates/)
 $TplDir = Join-Path $Root "release-templates"
@@ -136,16 +164,14 @@ Copy-Item -LiteralPath (Join-Path $TplDir "README-RELEASE.txt") -Destination (Jo
 Get-ChildItem -LiteralPath $Stage -File | Where-Object { $_.Name -match '[^\x00-\x7F]' } | Remove-Item -Force -ErrorAction SilentlyContinue
 
 if ($Zip) {
-    $ZipPath = Join-Path $Root "release\$OutName.zip"
+    $ReleaseDir = Join-Path $Root "release"
+    $ZipPath = Join-Path $ReleaseDir "$OutName.zip"
     if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
-    Write-Host "==> tar.exe zip (UTF-8 names) -> $ZipPath" -ForegroundColor Cyan
+    Write-Host "==> zip -> $ZipPath" -ForegroundColor Cyan
     if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
-        Push-Location (Split-Path $Stage -Parent)
-        try {
-            tar.exe -a -c -f $OutName.zip $OutName
-        } finally {
-            Pop-Location
-        }
+        $tarArgs = @("-a", "-c", "-f", $ZipPath, "-C", $ReleaseDir, $OutName)
+        & tar.exe @tarArgs
+        if ($LASTEXITCODE -ne 0) { throw "tar.exe failed: $LASTEXITCODE" }
     } else {
         Write-Host "tar.exe not found, fallback Compress-Archive" -ForegroundColor Yellow
         Compress-Archive -Path $Stage -DestinationPath $ZipPath -CompressionLevel Optimal

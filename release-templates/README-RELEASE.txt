@@ -1,4 +1,4 @@
-AgentTest Windows 发布包 — 使用说明
+﻿AgentTest Windows 发布包 — 使用说明
 ================================
 
 版本见 VERSION.txt
@@ -17,13 +17,21 @@ AgentTest Windows 发布包 — 使用说明
 3. 首次运行填写 DeepSeek API Key（必填）与可选 DashScope Key
 4. 保存后自动启动内核、打开浏览器 WebUI、显示桌宠
 
+独立运行说明（重要）
+--------------------
+- 本文件夹即为完整产品：无需再安装 Go / .NET SDK / Node.js
+- config/app.yaml、WorkSpace/、memory/ 等均写在本文件夹内
+- 与解压路径无关，可移动到 D:\Apps\AgentTest 等任意位置后照常使用
+- 小猫界面偏好（窗口位置、记住的 WebUI 密码）保存在
+  %AppData%\AgentTestPCAPPCat\settings.json，不随文件夹复制
+
 目录说明
 --------
 AgentTest.exe          Go 内核（小猫会自动拉起）
 AgentTestCat.exe       桌面小猫（推荐入口）
-config/app.example.yaml  配置模板；首次配置后生成 config/app.yaml
+config/app.example.yaml  配置模板；首次向导后生成 config/app.yaml（含密钥，勿分享）
 WorkSpace/mcp_bundled/   内置 MCP
-WorkSpace/               运行时日志与产物
+WorkSpace/               运行时日志、附件、MCP 数据与产物
 
 仅启动内核（高级）
 ------------------

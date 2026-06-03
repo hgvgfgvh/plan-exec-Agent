@@ -193,14 +193,33 @@ public sealed class AgentApiClient : IDisposable
             {
                 ev = new OutputEvent { Source = "raw", Text = payload };
             }
-            if (ev != null && !string.IsNullOrWhiteSpace(ev.Text))
+            if (ev == null) continue;
+
+            var isStream = IsStreamControlEvent(ev);
+            if (!isStream && string.IsNullOrWhiteSpace(ev.Text))
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(ev.Text))
             {
                 var preview = ev.Text.Length > 80 ? ev.Text[..80] + "…" : ev.Text;
-                DebugLog.Debug("sse", $"source={ev.Source} preview={preview}");
-                onEvent(ev);
+                DebugLog.Debug("sse", $"source={ev.Source} event={ev.Event} preview={preview}");
             }
+            else
+            {
+                DebugLog.Debug("sse", $"source={ev.Source} event={ev.Event} (stream control)");
+            }
+
+            onEvent(ev);
         }
         DebugLog.Debug("sse", "stream end");
+    }
+
+    private static bool IsStreamControlEvent(OutputEvent ev)
+    {
+        var msgId = (ev.MessageId ?? "").Trim();
+        if (string.IsNullOrEmpty(msgId)) return false;
+        var eventType = (ev.Event ?? "").Trim();
+        return eventType is "delta" or "final";
     }
 
     private static async Task EnsureOk(HttpResponseMessage res, CancellationToken ct)
