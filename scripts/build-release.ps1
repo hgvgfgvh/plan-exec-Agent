@@ -37,6 +37,7 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $LASTEXITCODE" }
 
 $PublishedCat = Join-Path $CatOut "AgentTestCat.exe"
 if (-not (Test-Path $PublishedCat)) { throw "publish failed: $PublishedCat" }
+Write-Host "==> stage: publish ok" -ForegroundColor DarkGray
 
 # --- 配置与静态资源 ---
 $Dirs = @(
@@ -83,6 +84,7 @@ AgentTest 配置目录
   再用记事本编辑 app.yaml 填入密钥。
 "@
 [System.IO.File]::WriteAllText((Join-Path $CfgStage "README.txt"), $CfgReadme, $Utf8Bom)
+Write-Host "==> stage: config ok" -ForegroundColor DarkGray
 
 # 空 memory / experience 占位
 $memDir = Join-Path $Stage "memory"
@@ -168,6 +170,24 @@ if (-not (Test-Path $TplDir)) { throw "Missing folder: $TplDir" }
 Copy-Item -LiteralPath (Join-Path $TplDir "Start-AgentTest-Cat.bat") -Destination (Join-Path $Stage "Start-AgentTest-Cat.bat") -Force
 Copy-Item -LiteralPath (Join-Path $TplDir "README-RELEASE.txt") -Destination (Join-Path $Stage "README-RELEASE.txt") -Force
 Get-ChildItem -LiteralPath $Stage -File | Where-Object { $_.Name -match '[^\x00-\x7F]' } | Remove-Item -Force -ErrorAction SilentlyContinue
+
+# 打包前强制校验 mcp_bundled（避免 robocopy 退出码 1 导致脚本提前终止时漏拷）
+$McpCheck = Join-Path $Stage "WorkSpace\mcp_bundled\mcp-memory\memory-mcp.exe"
+if (-not (Test-Path $McpCheck)) {
+    Write-Host "==> robocopy mcp_bundled (~300MB) [recovery]" -ForegroundColor Yellow
+    $McpSrc = Join-Path $Root "WorkSpace\mcp_bundled"
+    $McpDst = Join-Path $Stage "WorkSpace\mcp_bundled"
+    New-Item -ItemType Directory -Path (Split-Path $McpDst -Parent) -Force | Out-Null
+    if (-not (Test-Path $McpSrc)) { throw "missing source: $McpSrc" }
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    robocopy $McpSrc $McpDst /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+    $robocopyExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    if ($robocopyExit -ge 8) { throw "robocopy mcp_bundled failed: $robocopyExit" }
+    if (-not (Test-Path $McpCheck)) { throw "mcp_bundled still missing after robocopy" }
+}
+Write-Host "==> stage: mcp_bundled ok" -ForegroundColor DarkGray
 
 if ($Zip) {
     $ReleaseDir = Join-Path $Root "release"
