@@ -27,14 +27,13 @@ New-Item -ItemType Directory -Path $Stage -Force | Out-Null
 Write-Host "==> go build AgentTest.exe" -ForegroundColor Cyan
 go build -ldflags="-s -w" -o (Join-Path $Stage "AgentTest.exe") .
 
-# --- 发布小猫（自包含单文件，需本机已装 WebView2 运行时）---
+# --- 发布小猫（自包含目录发布，需本机 WebView2 运行时）---
 Write-Host "==> dotnet publish AgentTestCat (win-x64 self-contained)" -ForegroundColor Cyan
 $CatProj = Join-Path $Root "desktop-cat\AgentTestCat\AgentTestCat.csproj"
-# 非单文件发布：避免多次启动时单文件解压锁死；运行时放在 AgentTestCat\ 子目录
 $CatOut = Join-Path $Stage "AgentTestCat"
-dotnet publish $CatProj -c Release -r win-x64 --self-contained true `
-    -p:PublishSingleFile=false `
-    -o $CatOut
+if (Test-Path $CatOut) { Remove-Item $CatOut -Recurse -Force }
+dotnet publish $CatProj -c Release -r win-x64 --self-contained -p:PublishSingleFile=false "-o:$CatOut"
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $LASTEXITCODE" }
 
 $PublishedCat = Join-Path $CatOut "AgentTestCat.exe"
 if (-not (Test-Path $PublishedCat)) { throw "publish failed: $PublishedCat" }
@@ -103,8 +102,17 @@ if ($SkipMcpCopy -and (Test-Path $McpDst)) {
 } else {
     Write-Host "==> robocopy mcp_bundled (~300MB)" -ForegroundColor Yellow
     $McpSrc = Join-Path $Root "WorkSpace\mcp_bundled"
+    if (-not (Test-Path $McpSrc)) { throw "missing source: $McpSrc" }
+    # robocopy 成功时常返回 1；PowerShell Stop 会误判为失败并跳过后续步骤
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     robocopy $McpSrc $McpDst /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
-    if ($LASTEXITCODE -ge 8) { throw "robocopy mcp_bundled failed: $LASTEXITCODE" }
+    $robocopyExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    if ($robocopyExit -ge 8) { throw "robocopy mcp_bundled failed: $robocopyExit" }
+    if (-not (Test-Path (Join-Path $McpDst "mcp-memory\memory-mcp.exe"))) {
+        throw "mcp_bundled incomplete after robocopy (exit=$robocopyExit)"
+    }
 }
 
 $wsSub = @(
